@@ -16,6 +16,8 @@
 
 package solutions.tal.tools.maven.plugins.exec;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Maps;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 
@@ -27,6 +29,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -57,7 +60,13 @@ public final class ProcessExecutor {
     }
 
     public ProcessExecutor withEnvironmentVariables(Map<String, String> environmentVariables) {
-        this.environmentVariables.putAll(environmentVariables);
+        this.environmentVariables.putAll(Maps.transformValues(environmentVariables,
+                new Function<String, String>() {
+                    @Override
+                    public String apply(String input) {
+                        return input != null ? input : "";
+                    }
+                }));
         return this;
     }
 
@@ -68,10 +77,16 @@ public final class ProcessExecutor {
 
     private void validate() throws MojoExecutionException {
         // check if executable exists
-        final Path path = Paths.get(executable);
+        final String sanitizedExec = sanitizedExecutable(executable);
+        final Path path = Paths.get(sanitizedExec);
         if (!Files.isRegularFile(path) || !Files.isExecutable(path)) {
             throw new MojoExecutionException(String.format("'%s' is not a regular file and/or executable", executable));
         }
+    }
+
+    private static String sanitizedExecutable(String executable) {
+        final String osName = System.getProperty("os.name").toLowerCase(Locale.US);
+        return osName.contains("windows") ? executable + ".exe" : executable;
     }
 
     public String getName() {
@@ -80,9 +95,6 @@ public final class ProcessExecutor {
 
     public void execute(File workingDir, final Log mavenLog) throws MojoExecutionException {
         validate();
-        if (mavenLog.isInfoEnabled()) {
-            mavenLog.info("Starting process: " + name);
-        }
         if (mavenLog.isDebugEnabled()) {
             mavenLog.debug("Command line arguments:\n" + args);
             mavenLog.debug("With environment variables:\n" + environmentVariables);

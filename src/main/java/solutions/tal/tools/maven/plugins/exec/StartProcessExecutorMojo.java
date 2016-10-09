@@ -16,15 +16,20 @@
 
 package solutions.tal.tools.maven.plugins.exec;
 
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
+import org.apache.maven.artifact.resolver.filter.CumulativeScopeArtifactFilter;
+import org.apache.maven.artifact.resolver.filter.ScopeArtifactFilter;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -34,9 +39,15 @@ import java.util.List;
 @Mojo(name = "start", defaultPhase = LifecyclePhase.PRE_INTEGRATION_TEST)
 public class StartProcessExecutorMojo extends AbstractProcessExecutorMojo {
 
+    @Parameter
+    private ApplicationReadiness readinessCheck;
+
+    public void setReadinessCheck(ApplicationReadiness readinessCheck) {
+        this.readinessCheck = readinessCheck;
+    }
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        // handle arguments
         final List<String> commandArguments = new ArrayList<>();
         for (Object argument : arguments) {
             if (argument instanceof Classpath) {
@@ -52,7 +63,12 @@ public class StartProcessExecutorMojo extends AbstractProcessExecutorMojo {
 
         PluginExecutionStateHolder.addProcess(processExecutor, getPluginContext());
 
+        getLog().info("Starting process: " + name);
         processExecutor.execute(deriveWorkingDir(workingDir), getLog());
+        if (readinessCheck != null) {
+            readinessCheck.waitForReadiness(getLog(), name);
+        }
+        getLog().info("Started process: " + name);
         if (waitForInterrupt) {
             try {
                 sleepUntilInterrupted();
@@ -69,6 +85,7 @@ public class StartProcessExecutorMojo extends AbstractProcessExecutorMojo {
     private String buildClasspathStringArgument() throws MojoExecutionException {
         // get project artifacts
         try {
+            project.setArtifactFilter(new CumulativeScopeArtifactFilter(Collections.singletonList(Artifact.SCOPE_RUNTIME)));
             final List<String> runtimeClassPathElements = project.getRuntimeClasspathElements();
             final StringBuilder sb = new StringBuilder();
             final Iterator<String> it = runtimeClassPathElements.iterator();
