@@ -18,8 +18,6 @@ package solutions.tal.tools.maven.plugins.exec;
 
 import org.apache.maven.plugin.logging.Log;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * @author Thuan Luong
  */

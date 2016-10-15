@@ -17,6 +17,7 @@
 package solutions.tal.tools.maven.plugins.exec;
 
 import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
@@ -35,26 +36,9 @@ public abstract class AbstractProcessExecutorMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project}", readonly = true)
     protected MavenProject project;
 
-    @Parameter
-    protected String executable;
-
-    @Parameter
-    protected String name;
-
-    @Parameter
-    protected File outputFile;
-
-    @Parameter
-    protected File workingDir;
-
-    @Parameter
-    protected List<?> arguments;
 
     @Parameter(defaultValue = "false")
-    protected boolean waitForInterrupt;
-
-    @Parameter
-    protected Map<String, String> environmentVariables = new HashMap<>();
+    private boolean waitForInterrupt;
 
     public AbstractProcessExecutorMojo() {
         Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -68,7 +52,17 @@ public abstract class AbstractProcessExecutorMojo extends AbstractMojo {
         });
     }
 
-    protected void sleepUntilInterrupted() throws IOException {
+    protected void waitForInterruptIfRequired() throws MojoExecutionException {
+        if (waitForInterrupt) {
+            try {
+                sleepUntilInterrupted();
+            } catch (IOException e) {
+                throw new MojoExecutionException("Unexpected error", e);
+            }
+        }
+    }
+
+    private void sleepUntilInterrupted() throws IOException {
         getLog().info("Hit ENTER on the console to continue...");
 
         for (;;) {

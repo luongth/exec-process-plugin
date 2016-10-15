@@ -95,9 +95,9 @@ public final class ProcessExecutor {
 
     public void execute(File workingDir, final Log mavenLog) throws MojoExecutionException {
         validate();
-        if (mavenLog.isDebugEnabled()) {
-            mavenLog.debug("Command line arguments:\n" + args);
-            mavenLog.debug("With environment variables:\n" + environmentVariables);
+        if (mavenLog.isInfoEnabled()) {
+            mavenLog.info("Command line arguments:\n" + args);
+            mavenLog.info("With environment variables:\n" + environmentVariables);
         }
 
         final List<String> arguments = new ArrayList<>(args);

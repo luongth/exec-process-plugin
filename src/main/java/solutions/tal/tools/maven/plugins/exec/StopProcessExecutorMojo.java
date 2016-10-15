@@ -31,13 +31,7 @@ public class StopProcessExecutorMojo extends AbstractProcessExecutorMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        if (waitForInterrupt) {
-            try {
-                sleepUntilInterrupted();
-            } catch (IOException e) {
-                throw new MojoExecutionException("Unexpected error", e);
-            }
-        }
+        waitForInterruptIfRequired();
         stopAllProcesses();
     }
 }
