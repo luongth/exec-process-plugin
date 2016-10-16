@@ -17,7 +17,9 @@
 package solutions.tal.tools.maven.plugins.exec;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 
@@ -28,14 +30,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Thuan Luong
  */
-public final class ProcessExecutor {
+final class ProcessExecutor {
 
     private final String name;
 
@@ -44,6 +48,8 @@ public final class ProcessExecutor {
     private final List<String> args = new ArrayList<>();
 
     private final Map<String, String> environmentVariables = new HashMap<>();
+
+    private Set<String> systemPropertyArgs;
 
     private Process process;
 
@@ -55,11 +61,11 @@ public final class ProcessExecutor {
         this.args.addAll(args);
     }
 
-    public static ProcessExecutor create(String name, String executable, List<String> args) {
+    static ProcessExecutor create(String name, String executable, List<String> args) {
         return new ProcessExecutor(name, executable, args);
     }
 
-    public ProcessExecutor withEnvironmentVariables(Map<String, String> environmentVariables) {
+    ProcessExecutor withEnvironmentVariables(Map<String, String> environmentVariables) {
         this.environmentVariables.putAll(Maps.transformValues(environmentVariables,
                 new Function<String, String>() {
                     @Override
@@ -70,8 +76,19 @@ public final class ProcessExecutor {
         return this;
     }
 
-    public ProcessExecutor withOutputFile(File outputFile) {
+    ProcessExecutor withOutputFile(File outputFile) {
         this.outputFile = outputFile;
+        return this;
+    }
+
+    ProcessExecutor withSystemProperties(Map<String, String> systemProperties) {
+        final Iterable<String> transformedSystemProperties = Iterables.transform(systemProperties.entrySet(), new Function<Map.Entry<String,String>, String>() {
+            @Override
+            public String apply(Map.Entry<String, String> input) {
+                return "-D" + input.getKey().trim() + "=" + input.getValue().trim();
+            }
+        });
+        this.systemPropertyArgs = Sets.newHashSet(transformedSystemProperties);
         return this;
     }
 
@@ -89,19 +106,24 @@ public final class ProcessExecutor {
         return osName.contains("windows") ? executable + ".exe" : executable;
     }
 
-    public String getName() {
+    String getName() {
         return this.name;
     }
 
-    public void execute(File workingDir, final Log mavenLog) throws MojoExecutionException {
+    void execute(File workingDir, final Log mavenLog) throws MojoExecutionException {
         validate();
+
+        final List<String> arguments = new ArrayList<>();
+        arguments.add(executable);
+        if (systemPropertyArgs != null) {
+            arguments.addAll(systemPropertyArgs);
+        }
+        arguments.addAll(args);
+
         if (mavenLog.isInfoEnabled()) {
-            mavenLog.info("Command line arguments:\n" + args);
+            mavenLog.info("Command line arguments:\n" + arguments);
             mavenLog.info("With environment variables:\n" + environmentVariables);
         }
-
-        final List<String> arguments = new ArrayList<>(args);
-        arguments.add(0, executable);
 
         final ProcessBuilder pb = new ProcessBuilder();
         pb.command(arguments);
@@ -120,11 +142,11 @@ public final class ProcessExecutor {
         }
     }
 
-    public void stop() {
+    void stop() {
         process.destroy();
     }
 
-    public void waitFor() {
+    void waitFor() {
         try {
             process.waitFor();
         } catch (InterruptedException e) {

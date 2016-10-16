@@ -86,6 +86,9 @@ public class StartProcessExecutorMojo extends AbstractProcessExecutorMojo {
     private Map<String, String> environmentVariables = new HashMap<>();
 
     @Parameter
+    private Map<String, String> systemProperties = new HashMap<>();
+
+    @Parameter
     private ApplicationReadiness readinessCheck;
 
     @Override
@@ -101,7 +104,8 @@ public class StartProcessExecutorMojo extends AbstractProcessExecutorMojo {
         final ProcessExecutor processExecutor = ProcessExecutor
                 .create(name, executable, commandArguments)
                 .withOutputFile(outputFile)
-                .withEnvironmentVariables(environmentVariables);
+                .withEnvironmentVariables(environmentVariables)
+                .withSystemProperties(systemProperties);
 
         PluginExecutionStateHolder.addProcess(processExecutor, getPluginContext());
 
@@ -123,6 +127,21 @@ public class StartProcessExecutorMojo extends AbstractProcessExecutorMojo {
         if (additionalClasspathElements != null) {
             runtimeClasspathElements.addAll(additionalClasspathElements);
         }
+
+        augmentClasspathElementsForDependencies(runtimeClasspathElements);
+
+        final StringBuilder sb = new StringBuilder();
+        final Iterator<String> it = runtimeClasspathElements.iterator();
+        while (it.hasNext()) {
+            sb.append(it.next());
+            if (it.hasNext()) {
+                sb.append(File.pathSeparatorChar);
+            }
+        }
+        return sb.toString();
+    }
+
+    private void augmentClasspathElementsForDependencies(List<String> runtimeClasspathElements) throws MojoExecutionException {
         if (dependencies != null) {
             try {
                 for (Dependency dependency : dependencies) {
@@ -145,16 +164,8 @@ public class StartProcessExecutorMojo extends AbstractProcessExecutorMojo {
                 throw new MojoExecutionException(e.getMessage(), e);
             }
         }
-        final StringBuilder sb = new StringBuilder();
-        final Iterator<String> it = runtimeClasspathElements.iterator();
-        while (it.hasNext()) {
-            sb.append(it.next());
-            if (it.hasNext()) {
-                sb.append(File.pathSeparatorChar);
-            }
-        }
-        return sb.toString();
     }
+
 
     private static org.eclipse.aether.graph.Dependency toAetherDependency(Dependency dependency) {
         final org.eclipse.aether.artifact.Artifact artifact = new DefaultArtifact(

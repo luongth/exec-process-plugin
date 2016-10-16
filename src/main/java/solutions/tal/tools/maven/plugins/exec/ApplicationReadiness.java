@@ -21,7 +21,7 @@ import org.apache.maven.plugin.logging.Log;
 /**
  * @author Thuan Luong
  */
-public interface ApplicationReadiness {
+interface ApplicationReadiness {
 
     void waitForReadiness(Log log, String processName);
 

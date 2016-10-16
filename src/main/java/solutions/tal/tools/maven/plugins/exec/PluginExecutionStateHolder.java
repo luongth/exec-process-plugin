@@ -24,15 +24,15 @@ import java.util.Map;
  * @author Thuan Luong
  */
 @SuppressWarnings("unchecked")
-public final class PluginExecutionStateHolder {
+final class PluginExecutionStateHolder {
 
     private static final String PROCESS_STACK_KEY = "PROCESS_STACK_KEY";
 
-    public static void addProcess(ProcessExecutor process, Map pluginContext) {
+    static void addProcess(ProcessExecutor process, Map pluginContext) {
         getProcesses(pluginContext).push(process);
     }
 
-    public static Deque<ProcessExecutor> getProcesses(Map pluginContext) {
+    static Deque<ProcessExecutor> getProcesses(Map pluginContext) {
         Deque<ProcessExecutor> processes = (Deque<ProcessExecutor>) pluginContext.get(PROCESS_STACK_KEY);
         if (processes == null) {
             processes = new ArrayDeque<>();

@@ -31,16 +31,16 @@ import java.util.Map;
 /**
  * @author Thuan Luong
  */
-public abstract class AbstractProcessExecutorMojo extends AbstractMojo {
+abstract class AbstractProcessExecutorMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${project}", readonly = true)
-    protected MavenProject project;
+    MavenProject project;
 
 
     @Parameter(defaultValue = "false")
     private boolean waitForInterrupt;
 
-    public AbstractProcessExecutorMojo() {
+    AbstractProcessExecutorMojo() {
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
@@ -52,7 +52,7 @@ public abstract class AbstractProcessExecutorMojo extends AbstractMojo {
         });
     }
 
-    protected void waitForInterruptIfRequired() throws MojoExecutionException {
+    void waitForInterruptIfRequired() throws MojoExecutionException {
         if (waitForInterrupt) {
             try {
                 sleepUntilInterrupted();
@@ -73,7 +73,7 @@ public abstract class AbstractProcessExecutorMojo extends AbstractMojo {
         }
     }
 
-    protected void stopAllProcesses() {
+    void stopAllProcesses() {
         final Deque<ProcessExecutor> processExecutors = PluginExecutionStateHolder.getProcesses(getPluginContext());
         while (!processExecutors.isEmpty()) {
             final ProcessExecutor processExecutor = processExecutors.pop();
